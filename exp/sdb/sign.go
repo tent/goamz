@@ -4,7 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"launchpad.net/goamz/aws"
+	"github.com/titanous/goamz/aws"
 	"net/http"
 	"net/url"
 	"sort"

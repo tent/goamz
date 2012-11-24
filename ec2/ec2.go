@@ -13,7 +13,7 @@ import (
 	"encoding/hex"
 	"encoding/xml"
 	"fmt"
-	"launchpad.net/goamz/aws"
+	"github.com/titanous/goamz/aws"
 	"log"
 	"net/http"
 	"net/http/httputil"

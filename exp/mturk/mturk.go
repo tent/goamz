@@ -17,7 +17,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"launchpad.net/goamz/aws"
+	"github.com/titanous/goamz/aws"
 	"net/http"
 	//"net/http/httputil"
 	"net/url"
