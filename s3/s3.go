@@ -180,6 +180,28 @@ func (b *Bucket) GetReader(path string) (rc io.ReadCloser, err error) {
 	panic("unreachable")
 }
 
+func (b *Bucket) GetWithHeaders(path string) (rc io.ReadCloser, headers http.Header, err error) {
+	req := &Request{
+		Bucket: b.Name,
+		Path:   path,
+	}
+	err = b.S3.Prepare(req)
+	if err != nil {
+		return nil, nil, err
+	}
+	for attempt := attempts.Start(); attempt.Next(); {
+		resp, err := b.S3.Run(req, nil)
+		if shouldRetry(err) && attempt.HasNext() {
+			continue
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+		return resp.Body, resp.Header, nil
+	}
+	panic("unreachable")
+}
+
 // Put inserts an object into the S3 bucket.
 //
 // See http://goo.gl/FEBPD for details.
@@ -204,6 +226,17 @@ func (b *Bucket) PutReader(path string, r io.Reader, length int64, contType stri
 		payload: r,
 	}
 	return b.S3.query(req, nil)
+}
+
+func (b *Bucket) PutWithHeaders(path string, r io.Reader, headers http.Header) error {
+	req := &Request{
+		Method:  "PUT",
+		Bucket:  b.Name,
+		Path:    path,
+		Headers: headers,
+		Payload: r,
+	}
+	return b.S3.Query(req, nil)
 }
 
 // Del removes an object from the S3 bucket.
