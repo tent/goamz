@@ -180,14 +180,14 @@ func (b *Bucket) GetReader(path string) (rc io.ReadCloser, err error) {
 	panic("unreachable")
 }
 
-func (b *Bucket) GetWithHeaders(path string) (rc io.ReadCloser, headers http.Header, err error) {
+func (b *Bucket) GetResponse(path string) (res *http.Response, err error) {
 	req := &Request{
 		Bucket: b.Name,
 		Path:   path,
 	}
 	err = b.S3.Prepare(req)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	for attempt := attempts.Start(); attempt.Next(); {
 		resp, err := b.S3.Run(req, nil)
@@ -195,9 +195,9 @@ func (b *Bucket) GetWithHeaders(path string) (rc io.ReadCloser, headers http.Hea
 			continue
 		}
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		return resp.Body, resp.Header, nil
+		return resp, nil
 	}
 	panic("unreachable")
 }
