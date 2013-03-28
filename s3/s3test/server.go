@@ -544,12 +544,35 @@ var metaHeaders = map[string]bool{
 	"Content-Disposition": true,
 }
 
+func (objr objectResource) copyFrom(source string) interface{} {
+	m := pathRegexp.FindStringSubmatch(source)
+	if m == nil {
+		fatalf(404, "InvalidURI", "Couldn't parse the specified copy source URI")
+	}
+	if obj, ok := objr.bucket.objects[m[4]]; ok {
+		objr.bucket.objects[objr.name] = &object{
+			name:     objr.name,
+			mtime:    obj.mtime,
+			meta:     obj.meta,
+			checksum: obj.checksum,
+			data:     obj.data,
+		}
+		return nil
+	}
+	fatalf(404, "NoSuchObject", "The specified object does not exist")
+	return nil
+}
+
 // PUT on an object creates the object.
 func (objr objectResource) put(a *action) interface{} {
 	// TODO Cache-Control header
 	// TODO Expires header
 	// TODO x-amz-server-side-encryption
 	// TODO x-amz-storage-class
+
+	if source := a.req.Header.Get("x-amz-copy-source"); source != "" {
+		return objr.copyFrom(source)
+	}
 
 	// TODO is this correct, or should we erase all previous metadata?
 	obj := objr.object

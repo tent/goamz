@@ -239,6 +239,16 @@ func (b *Bucket) PutWithHeaders(path string, r io.Reader, headers http.Header) e
 	return b.S3.Query(req, nil)
 }
 
+func (b *Bucket) Copy(oldPath, newPath string) error {
+	req := &Request{
+		Method:  "PUT",
+		Bucket:  b.Name,
+		Path:    newPath,
+		Headers: http.Header{"x-amz-copy-source": {"/" + b.Name + "/" + oldPath}},
+	}
+	return b.S3.Query(req, nil)
+}
+
 // Del removes an object from the S3 bucket.
 //
 // See http://goo.gl/APeTt for details.
