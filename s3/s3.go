@@ -246,7 +246,21 @@ func (b *Bucket) Copy(oldPath, newPath string) error {
 		path:    newPath,
 		headers: http.Header{"x-amz-copy-source": {"/" + b.Name + "/" + oldPath}},
 	}
-	return b.S3.query(req, nil)
+	err := b.S3.prepare(req)
+	if err != nil {
+		return err
+	}
+	for attempt := attempts.Start(); attempt.Next(); {
+		res, err := b.S3.run(req)
+		if shouldRetry(err) && attempt.HasNext() {
+			continue
+		}
+		if res != nil {
+			res.Body.Close()
+		}
+		return err
+	}
+	panic("unreachable")
 }
 
 // Del removes an object from the S3 bucket.
