@@ -181,16 +181,16 @@ func (b *Bucket) GetReader(path string) (rc io.ReadCloser, err error) {
 }
 
 func (b *Bucket) GetResponse(path string) (res *http.Response, err error) {
-	req := &Request{
-		Bucket: b.Name,
-		Path:   path,
+	req := &request{
+		bucket: b.Name,
+		path:   path,
 	}
-	err = b.S3.Prepare(req)
+	err = b.S3.prepare(req)
 	if err != nil {
 		return nil, err
 	}
 	for attempt := attempts.Start(); attempt.Next(); {
-		resp, err := b.S3.Run(req, nil)
+		resp, err := b.S3.run(req)
 		if shouldRetry(err) && attempt.HasNext() {
 			continue
 		}
@@ -229,24 +229,24 @@ func (b *Bucket) PutReader(path string, r io.Reader, length int64, contType stri
 }
 
 func (b *Bucket) PutWithHeaders(path string, r io.Reader, headers http.Header) error {
-	req := &Request{
-		Method:  "PUT",
-		Bucket:  b.Name,
-		Path:    path,
-		Headers: headers,
-		Payload: r,
+	req := &request{
+		method:  "PUT",
+		bucket:  b.Name,
+		path:    path,
+		headers: headers,
+		payload: r,
 	}
-	return b.S3.Query(req, nil)
+	return b.S3.query(req, nil)
 }
 
 func (b *Bucket) Copy(oldPath, newPath string) error {
-	req := &Request{
-		Method:  "PUT",
-		Bucket:  b.Name,
-		Path:    newPath,
-		Headers: http.Header{"x-amz-copy-source": {"/" + b.Name + "/" + oldPath}},
+	req := &request{
+		method:  "PUT",
+		bucket:  b.Name,
+		path:    newPath,
+		headers: http.Header{"x-amz-copy-source": {"/" + b.Name + "/" + oldPath}},
 	}
-	return b.S3.Query(req, nil)
+	return b.S3.query(req, nil)
 }
 
 // Del removes an object from the S3 bucket.
