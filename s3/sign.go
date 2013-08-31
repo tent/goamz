@@ -29,6 +29,7 @@ var s3ParamsToSign = map[string]bool{
 	"versionId":                    true,
 	"versioning":                   true,
 	"versions":                     true,
+	"delete":                       true,
 	"response-content-type":        true,
 	"response-content-language":    true,
 	"response-expires":             true,
