@@ -58,3 +58,23 @@ func (b *Bucket) DeleteMulti(keys []string) map[string]error {
 	}
 	return errs
 }
+
+type verConfig struct {
+	XMLName   xml.Name `xml:"http://s3.amazonaws.com/doc/2006-03-01/ VersioningConfiguration"`
+	Status    string
+	MfaDelete string
+}
+
+func (b *Bucket) EnableMFADelete(serial string, code string) error {
+	data, _ := xml.Marshal(&verConfig{Status: "Enabled", MfaDelete: "Enabled"})
+	header := make(http.Header)
+	header.Set("x-amz-mfa", serial+" "+code)
+	req := &request{
+		bucket:  b.Name,
+		method:  "PUT",
+		params:  url.Values{"versioning": []string{""}},
+		payload: bytes.NewBuffer(data),
+		headers: header,
+	}
+	return b.S3.query(req, &struct{}{})
+}
