@@ -918,6 +918,29 @@ func (ec2 *EC2) authOrRevoke(op string, group SecurityGroup, perms []IPPerm) (re
 		return nil, err
 	}
 	return resp, nil
+
+}
+
+type CreateVpcResp struct {
+	Vpc       Vpc    `xml:"vpc"`
+	RequestId string `xml:"requestId"`
+}
+
+type Vpc struct {
+	VpcId           string `xml:"vpcId"`
+	State           string `xml:"state"`
+	CIDRBlock       string `xml:"cidrBlock"`
+	DHCPOptionsId   string `xml:"dhcpOptionsId"`
+	InstanceTenancy string `xml:"instanceTenancy"`
+}
+
+func (ec2 *EC2) CreateVpc(cidr string) (*CreateVpcResp, error) {
+	params := makeParams("CreateVpc")
+	params["CidrBlock"] = cidr
+
+	resp := &CreateVpcResp{}
+	err := ec2.query(params, resp)
+	return resp, err
 }
 
 // Tag represents key-value metadata used to classify and organize
