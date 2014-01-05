@@ -1,11 +1,12 @@
 package ec2_test
 
 import (
+	"testing"
+
 	"github.com/cupcake/goamz/aws"
 	"github.com/cupcake/goamz/ec2"
 	"github.com/cupcake/goamz/testutil"
 	. "launchpad.net/gocheck"
-	"testing"
 )
 
 func Test(t *testing.T) {
