@@ -1,7 +1,7 @@
 package ec2
 
 import (
-	"github.com/titanous/goamz/aws"
+	"github.com/cupcake/goamz/aws"
 	"time"
 )
 

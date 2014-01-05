@@ -1,8 +1,8 @@
 package ec2_test
 
 import (
-	"github.com/titanous/goamz/aws"
-	"github.com/titanous/goamz/ec2"
+	"github.com/cupcake/goamz/aws"
+	"github.com/cupcake/goamz/ec2"
 	. "launchpad.net/gocheck"
 )
 

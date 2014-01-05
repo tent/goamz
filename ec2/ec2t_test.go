@@ -7,10 +7,10 @@ import (
 	"sort"
 	"time"
 
-	"github.com/titanous/goamz/aws"
-	"github.com/titanous/goamz/ec2"
-	"github.com/titanous/goamz/ec2/ec2test"
-	"github.com/titanous/goamz/testutil"
+	"github.com/cupcake/goamz/aws"
+	"github.com/cupcake/goamz/ec2"
+	"github.com/cupcake/goamz/ec2/ec2test"
+	"github.com/cupcake/goamz/testutil"
 	. "launchpad.net/gocheck"
 )
 

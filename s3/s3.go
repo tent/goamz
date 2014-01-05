@@ -12,7 +12,7 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
-	"github.com/titanous/goamz/aws"
+	"github.com/cupcake/goamz/aws"
 	"io"
 	"io/ioutil"
 	"log"
