@@ -2,7 +2,7 @@ package testutil
 
 import (
 	"flag"
-	"launchpad.net/goamz/aws"
+	"github.com/titanous/goamz/aws"
 	. "launchpad.net/gocheck"
 )
 
