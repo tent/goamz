@@ -1033,3 +1033,28 @@ func (ec2 *EC2) RebootInstances(ids ...string) (resp *SimpleResp, err error) {
 	}
 	return resp, nil
 }
+
+type CreateInternetGatewayResp struct {
+	InternetGateway InternetGateway `xml:"internetGateway"`
+	RequestId       string          `xml:"requestId"`
+}
+
+type InternetGateway struct {
+	InternetGatewayId string `xml:"internetGatewayId"`
+}
+
+func (ec2 *EC2) CreateInternetGateway() (*CreateInternetGatewayResp, error) {
+	resp := &CreateInternetGatewayResp{}
+	err := ec2.query(makeParams("CreateInternetGateway"), resp)
+	return resp, err
+}
+
+func (ec2 *EC2) AttachInternetGateway(gatewayId, vpcId string) (*SimpleResp, error) {
+	params := makeParams("AttachInternetGateway")
+	params["InternetGatewayId"] = gatewayId
+	params["VpcId"] = vpcId
+
+	resp := &SimpleResp{}
+	err := ec2.query(params, resp)
+	return resp, err
+}
