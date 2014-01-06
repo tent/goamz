@@ -1058,3 +1058,30 @@ func (ec2 *EC2) AttachInternetGateway(gatewayId, vpcId string) (*SimpleResp, err
 	err := ec2.query(params, resp)
 	return resp, err
 }
+
+type Route struct {
+	RouteTableId         string
+	DestinationCIDRBlock string
+	GatewayId            string
+	InstanceId           string
+	NetworkInterfaceId   string
+}
+
+func (ec2 *EC2) CreateRoute(r *Route) (*SimpleResp, error) {
+	params := makeParams("CreateRoute")
+	params["RouteTableId"] = r.RouteTableId
+	params["DestinationCidrBlock"] = r.DestinationCIDRBlock
+	if r.GatewayId != "" {
+		params["GatewayId"] = r.GatewayId
+	}
+	if r.InstanceId != "" {
+		params["InstanceId"] = r.InstanceId
+	}
+	if r.NetworkInterfaceId != "" {
+		params["NetworkInterfaceId"] = r.NetworkInterfaceId
+	}
+
+	resp := &SimpleResp{}
+	err := ec2.query(params, resp)
+	return resp, err
+}
