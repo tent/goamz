@@ -1085,3 +1085,29 @@ func (ec2 *EC2) CreateRoute(r *Route) (*SimpleResp, error) {
 	err := ec2.query(params, resp)
 	return resp, err
 }
+
+type RouteTable struct {
+	RouteTableId string         `xml:"routeTableId"`
+	VpcId        string         `xml:"vpcId"`
+	RouteSet     []RouteSetItem `xml:"routeSet>item"`
+}
+
+type RouteSetItem struct {
+	DestinationCIDRBlock string `xml:"destinationCidrBlock"`
+	GatewayId            string `xml:"gatewayId"`
+	State                string `xml:"state"`
+}
+
+type CreateRouteTableResp struct {
+	RouteTable RouteTable `xml:"routeTable"`
+	RequestId  string     `xml:"requestId"`
+}
+
+func (ec2 *EC2) CreateRouteTable(vpcId string) (*CreateRouteTableResp, error) {
+	params := makeParams("CreateRouteTable")
+	params["VpcId"] = vpcId
+
+	resp := &CreateRouteTableResp{}
+	err := ec2.query(params, resp)
+	return resp, err
+}
