@@ -226,14 +226,15 @@ func addParamsList(params map[string]string, label string, ids []string) {
 // secondary IPs. The number of IP addresses that can be assigned to a
 // network interface varies by instance type.
 type RunNetworkInterface struct {
-	Id                      string
-	DeviceIndex             int
-	SubnetId                string
-	Description             string
-	PrivateIPs              []PrivateIP
-	SecurityGroupIds        []string
-	DeleteOnTermination     bool
-	SecondaryPrivateIPCount int
+	Id                       string
+	DeviceIndex              int
+	SubnetId                 string
+	Description              string
+	PrivateIPs               []PrivateIP
+	SecurityGroupIds         []string
+	DeleteOnTermination      bool
+	SecondaryPrivateIPCount  int
+	AssociatePublicIPAddress bool
 }
 
 // The RunInstances type encapsulates options for the respective request in EC2.
@@ -449,6 +450,7 @@ func prepareNetworkInterfaces(params map[string]string, nics []RunNetworkInterfa
 			val := strconv.Itoa(ni.SecondaryPrivateIPCount)
 			params[prefix+".SecondaryPrivateIpAddressCount"] = val
 		}
+		params[prefix+".AssociatePublicIpAddress"] = fmt.Sprintf("%t", ni.AssociatePublicIPAddress)
 		for j, ip := range ni.PrivateIPs {
 			k := strconv.Itoa(j)
 			subprefix := prefix + ".PrivateIpAddresses." + k
