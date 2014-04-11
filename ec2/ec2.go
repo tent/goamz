@@ -922,28 +922,6 @@ func (ec2 *EC2) authOrRevoke(op string, group SecurityGroup, perms []IPPerm) (re
 
 }
 
-type CreateVpcResp struct {
-	Vpc       Vpc    `xml:"vpc"`
-	RequestId string `xml:"requestId"`
-}
-
-type Vpc struct {
-	VpcId           string `xml:"vpcId"`
-	State           string `xml:"state"`
-	CIDRBlock       string `xml:"cidrBlock"`
-	DHCPOptionsId   string `xml:"dhcpOptionsId"`
-	InstanceTenancy string `xml:"instanceTenancy"`
-}
-
-func (ec2 *EC2) CreateVpc(cidr string) (*CreateVpcResp, error) {
-	params := makeParams("CreateVpc")
-	params["CidrBlock"] = cidr
-
-	resp := &CreateVpcResp{}
-	err := ec2.query(params, resp)
-	return resp, err
-}
-
 // Tag represents key-value metadata used to classify and organize
 // EC2 instances.
 //
@@ -1035,20 +1013,6 @@ func (ec2 *EC2) RebootInstances(ids ...string) (resp *SimpleResp, err error) {
 	return resp, nil
 }
 
-type VpcsResp struct {
-	RequestId string `xml:"requestId"`
-	Vpcs      []Vpc  `xml:"vpcSet>item"`
-}
-
-func (ec2 *EC2) Vpcs(vpcIds []string, filter *Filter) (*VpcsResp, error) {
-	params := makeParams("DescribeVpcs")
-	addParamsList(params, "VpcId", vpcIds)
-	filter.addParams(params)
-	resp := &VpcsResp{}
-	err := ec2.query(params, resp)
-	return resp, err
-}
-
 type CreateInternetGatewayResp struct {
 	InternetGateway InternetGateway `xml:"internetGateway"`
 	RequestId       string          `xml:"requestId"`
@@ -1137,14 +1101,6 @@ func (ec2 *EC2) RouteTables(routeTableIds []string, filter *Filter) (*RouteTable
 	addParamsList(params, "RouteTableId", routeTableIds)
 	filter.addParams(params)
 	resp := &RouteTablesResp{}
-	err := ec2.query(params, resp)
-	return resp, err
-}
-
-func (ec2 *EC2) DeleteVpc(vpcId string) (*SimpleResp, error) {
-	params := makeParams("DeleteVpc")
-	params["VpcId"] = vpcId
-	resp := &SimpleResp{}
 	err := ec2.query(params, resp)
 	return resp, err
 }
