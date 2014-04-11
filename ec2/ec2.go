@@ -13,7 +13,6 @@ import (
 	"encoding/hex"
 	"encoding/xml"
 	"fmt"
-	"github.com/cupcake/goamz/aws"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -21,6 +20,8 @@ import (
 	"sort"
 	"strconv"
 	"time"
+
+	"github.com/cupcake/goamz/aws"
 )
 
 const (
@@ -1034,6 +1035,20 @@ func (ec2 *EC2) RebootInstances(ids ...string) (resp *SimpleResp, err error) {
 	return resp, nil
 }
 
+type VpcsResp struct {
+	RequestId string `xml:"requestId"`
+	Vpcs      []Vpc  `xml:"vpcSet>item"`
+}
+
+func (ec2 *EC2) Vpcs(vpcIds []string, filter *Filter) (*VpcsResp, error) {
+	params := makeParams("DescribeVpcs")
+	addParamsList(params, "VpcId", vpcIds)
+	filter.addParams(params)
+	resp := &VpcsResp{}
+	err := ec2.query(params, resp)
+	return resp, err
+}
+
 type CreateInternetGatewayResp struct {
 	InternetGateway InternetGateway `xml:"internetGateway"`
 	RequestId       string          `xml:"requestId"`
@@ -1108,6 +1123,45 @@ func (ec2 *EC2) CreateRouteTable(vpcId string) (*CreateRouteTableResp, error) {
 	params["VpcId"] = vpcId
 
 	resp := &CreateRouteTableResp{}
+	err := ec2.query(params, resp)
+	return resp, err
+}
+
+type RouteTablesResp struct {
+	RequestId   string       `xml:"requestId"`
+	RouteTables []RouteTable `xml:"routeTableSet>item"`
+}
+
+func (ec2 *EC2) RouteTables(routeTableIds []string, filter *Filter) (*RouteTablesResp, error) {
+	params := makeParams("DescribeRouteTables")
+	addParamsList(params, "RouteTableId", routeTableIds)
+	filter.addParams(params)
+	resp := &RouteTablesResp{}
+	err := ec2.query(params, resp)
+	return resp, err
+}
+
+func (ec2 *EC2) DeleteVpc(vpcId string) (*SimpleResp, error) {
+	params := makeParams("DeleteVpc")
+	params["VpcId"] = vpcId
+	resp := &SimpleResp{}
+	err := ec2.query(params, resp)
+	return resp, err
+}
+
+func (ec2 *EC2) DeleteInternetGateway(gatewayId string) (*SimpleResp, error) {
+	params := makeParams("DeleteInternetGateway")
+	params["InternetGatewayId"] = gatewayId
+	resp := &SimpleResp{}
+	err := ec2.query(params, resp)
+	return resp, err
+}
+
+func (ec2 *EC2) DetachInternetGateway(gatewayId, vpcId string) (*SimpleResp, error) {
+	params := makeParams("DetachInternetGateway")
+	params["InternetGatewayId"] = gatewayId
+	params["VpcId"] = vpcId
+	resp := &SimpleResp{}
 	err := ec2.query(params, resp)
 	return resp, err
 }
