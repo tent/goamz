@@ -1123,3 +1123,26 @@ func (ec2 *EC2) DetachInternetGateway(gatewayId, vpcId string) (*SimpleResp, err
 	err := ec2.query(params, resp)
 	return resp, err
 }
+
+type ImportKeyPairResp struct {
+	RequestId   string `xml:"requestId"`
+	Name        string `xml:"keyName"`
+	Fingerprint string `xml:"keyFingerprint"`
+}
+
+func (ec2 *EC2) ImportKeyPair(name, key string) (*ImportKeyPairResp, error) {
+	params := makeParams("ImportKeyPair")
+	params["KeyName"] = name
+	params["PublicKeyMaterial"] = key
+	resp := &ImportKeyPairResp{}
+	err := ec2.query(params, resp)
+	return resp, err
+}
+
+func (ec2 *EC2) DeleteKeyPair(name string) (*SimpleResp, error) {
+	params := makeParams("DeleteKeyPair")
+	params["KeyName"] = name
+	resp := &SimpleResp{}
+	err := ec2.query(params, resp)
+	return resp, err
+}
