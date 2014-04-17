@@ -168,7 +168,6 @@ func (r *Route53) query(method, path string, in, out interface{}) error {
 		if err := xml.NewEncoder(&buf).Encode(in); err != nil {
 			return err
 		}
-		fmt.Println(method, r.BaseURL+path, buf.String())
 		body = &buf
 	}
 
