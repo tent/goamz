@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/cupcake/goamz/aws"
@@ -26,7 +27,7 @@ const (
 	changePath      = "/change"
 )
 
-func NewRoute53(auth aws.Auth) *Route53 {
+func New(auth aws.Auth) *Route53 {
 	return &Route53{
 		Auth:    auth,
 		BaseURL: apiBase,
@@ -54,12 +55,14 @@ type ListHostedZonesResponse struct {
 }
 
 type CreateHostedZoneRequest struct {
+	XMLName         xml.Name `xml:"https://route53.amazonaws.com/doc/2013-04-01/ CreateHostedZoneRequest"`
 	Name            string
 	CallerReference string
 	Comment         string `xml:"HostedZoneConfig>Comment,omitempty"`
 }
 
-type ChangeResourceRecordSetsRequest struct {
+type ChangeResourceRecordSetsReq struct {
+	XMLName xml.Name                  `xml:"https://route53.amazonaws.com/doc/2013-04-01/ ChangeResourceRecordSetsRequest"`
 	Changes []ResourceRecordSetChange `xml:"ChangeBatch>Changes>Change"`
 }
 
@@ -71,14 +74,18 @@ type ResourceRecordSetChange struct {
 type ResourceRecordSet struct {
 	Name          string
 	Type          string
-	TTL           string       `xml:",omitempty"`
-	Values        []string     `xml:"ResourceRecords>ResourceRecord>Value"`
-	SetId         string       `xml:"SetIdentifier,omitempty"`
-	Weight        int          `xml:",omitempty"`
-	Region        string       `xml:",omitempty"`
-	Failover      string       `xml:",omitempty"`
-	HealthCheckId string       `xml:",omitempty"`
-	AliasTarget   *AliasTarget `xml:",omitempty"`
+	SetId         string           `xml:"SetIdentifier,omitempty"`
+	Weight        int              `xml:",omitempty"`
+	Region        string           `xml:",omitempty"`
+	Failover      string           `xml:",omitempty"`
+	TTL           int              `xml:",omitempty"`
+	Records       []ResourceRecord `xml:"ResourceRecords>ResourceRecord"`
+	HealthCheckId string           `xml:",omitempty"`
+	AliasTarget   *AliasTarget     `xml:",omitempty"`
+}
+
+type ResourceRecord struct {
+	Value string
 }
 
 type AliasTarget struct {
@@ -88,9 +95,9 @@ type AliasTarget struct {
 }
 
 type CreateHostedZoneResponse struct {
-	HostedZone    HostedZone
-	ChangeInfo    ChangeInfo
-	DelegationSet DelegationSet
+	HostedZone  HostedZone
+	ChangeInfo  ChangeInfo
+	NameServers []string `xml:"DelegationSet>NameServers>NameServer"`
 }
 
 type changeResourceRecordSetsResponse struct {
@@ -103,17 +110,9 @@ type ChangeInfo struct {
 	SubmittedAt string
 }
 
-type DelegationSet struct {
-	NameServers NameServers
-}
-
-type NameServers struct {
-	NameServer []string
-}
-
 type GetHostedZoneResponse struct {
-	HostedZone    HostedZone
-	DelegationSet DelegationSet
+	HostedZone  HostedZone
+	NameServers []string `xml:"DelegationSet>NameServers>NameServer"`
 }
 
 type DeleteHostedZoneResponse struct {
@@ -126,7 +125,7 @@ type getChangeResponse struct {
 
 type HealthCheck struct {
 	XMLName          xml.Name
-	Id               string `xml:",omitempty`
+	Id               string `xml:",omitempty"`
 	CallerReference  string
 	IPAddress        string `xml:"HealthCheckConfig>IPAddress"`
 	Port             int    `xml:"HealthCheckConfig>Port,omitempty"`
@@ -169,6 +168,7 @@ func (r *Route53) query(method, path string, in, out interface{}) error {
 		if err := xml.NewEncoder(&buf).Encode(in); err != nil {
 			return err
 		}
+		fmt.Println(method, r.BaseURL+path, buf.String())
 		body = &buf
 	}
 
@@ -214,14 +214,23 @@ func (err *Error) Error() string {
 	return fmt.Sprintf("%s (%s)", err.Message, err.Code)
 }
 
-func (r *Route53) CreateHostedZone(hostedZoneReq *CreateHostedZoneRequest) (*CreateHostedZoneResponse, error) {
-	res := &CreateHostedZoneResponse{}
-	return res, r.queryZone("POST", "", hostedZoneReq, res)
+func cleanID(id string) string {
+	return strings.TrimPrefix(id, "/hostedzone/")
 }
 
-func (r *Route53) ChangeResourceRecordSet(req *ChangeResourceRecordSetsRequest, zoneId string) (*ChangeInfo, error) {
+func (r *Route53) CreateHostedZone(name, callerRef, comment string) (*CreateHostedZoneResponse, error) {
+	req := &CreateHostedZoneRequest{
+		Name:            name,
+		CallerReference: callerRef,
+		Comment:         comment,
+	}
+	res := &CreateHostedZoneResponse{}
+	return res, r.queryZone("POST", "", req, res)
+}
+
+func (r *Route53) ChangeResourceRecordSets(zoneId string, changes []ResourceRecordSetChange) (*ChangeInfo, error) {
 	res := &changeResourceRecordSetsResponse{}
-	return &res.ChangeInfo, r.queryZone("POST", fmt.Sprintf("/%s/rrset", zoneId), req, res)
+	return &res.ChangeInfo, r.queryZone("POST", fmt.Sprintf("/%s/rrset", cleanID(zoneId)), &ChangeResourceRecordSetsReq{Changes: changes}, res)
 }
 
 func (r *Route53) ListHostedZones(marker string, maxItems int) (*ListHostedZonesResponse, error) {
@@ -237,16 +246,17 @@ func (r *Route53) ListHostedZones(marker string, maxItems int) (*ListHostedZones
 
 func (r *Route53) GetHostedZone(id string) (*GetHostedZoneResponse, error) {
 	res := &GetHostedZoneResponse{}
-	return res, r.queryZone("GET", "/"+id, nil, res)
+	return res, r.queryZone("GET", "/"+cleanID(id), nil, res)
 }
 
 func (r *Route53) DeleteHostedZone(id string) (*DeleteHostedZoneResponse, error) {
 	res := &DeleteHostedZoneResponse{}
-	return res, r.queryZone("DELETE", "/"+id, nil, res)
+	return res, r.queryZone("DELETE", "/"+cleanID(id), nil, res)
 }
 
 func (r *Route53) CreateHealthCheck(check *HealthCheck) (*HealthCheck, error) {
 	check.XMLName.Local = "CreateHealthCheckRequest"
+	check.XMLName.Space = "https://route53.amazonaws.com/doc/2013-04-01/"
 	res := &healthCheckWrapper{}
 	err := r.queryHealthCheck("POST", "", check, res)
 	return &res.HealthCheck, err
