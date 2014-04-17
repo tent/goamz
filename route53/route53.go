@@ -2,31 +2,31 @@ package route53
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/xml"
 	"fmt"
-	"github.com/crowdmob/goamz/aws"
 	"io"
 	"net/http"
+	"time"
+
+	"github.com/cupcake/goamz/aws"
 )
 
 type Route53 struct {
 	Auth     aws.Auth
 	Endpoint string
-	Signer   *aws.Route53Signer
-	Service  *aws.Service
 }
 
-const route53_host = "https://route53.amazonaws.com"
+const apiEndpoint = "https://route53.amazonaws.com/2013-04-01/hostedzone"
 
 // Factory for the route53 type
-func NewRoute53(auth aws.Auth) (*Route53, error) {
-	signer := aws.NewRoute53Signer(auth)
-
+func NewRoute53(auth aws.Auth) *Route53 {
 	return &Route53{
 		Auth:     auth,
-		Signer:   signer,
-		Endpoint: route53_host + "/2013-04-01/hostedzone",
-	}, nil
+		Endpoint: apiEndpoint,
+	}
 }
 
 // General Structs used in all types of requests
@@ -126,36 +126,62 @@ type DeleteHostedZoneResponse struct {
 	ChangeInfo ChangeInfo
 }
 
+func (r *Route53) sign(req *http.Request) {
+	date := time.Now().Format(time.RFC1123)
+	h := hmac.New(sha256.New, []byte(r.Auth.SecretKey))
+	h.Write([]byte(date))
+	sig := base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+	authHeader := fmt.Sprintf("AWS3-HTTPS AWSAccessKeyId=%s,Algorithm=%s,Signature=%s", r.Auth.AccessKey, "HmacSHA256", sig)
+	req.Header.Set("Date", date)
+	req.Header.Set("X-Amzn-Authorization", authHeader)
+}
+
 // query sends the specified HTTP request to the path and signs the request
 // with the required authentication and headers based on the Auth.
 //
 // Automatically decodes the response into the the result interface
 func (r *Route53) query(method string, path string, body io.Reader, result interface{}) error {
-	var err error
-
-	// Create the POST request and sign the headers
 	req, err := http.NewRequest(method, path, body)
-	r.Signer.Sign(req)
+	r.sign(req)
+	req.Header.Set("Content-Type", "application/xml")
 
-	// Send the request and capture the response
-	client := &http.Client{}
-	res, err := client.Do(req)
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
-
-	if method == "POST" {
-		defer req.Body.Close()
-	}
+	defer req.Body.Close()
 
 	if res.StatusCode != 201 && res.StatusCode != 200 {
-		err = r.Service.BuildError(res)
-		return err
+		return buildError(res)
 	}
 
-	err = xml.NewDecoder(res.Body).Decode(result)
+	return xml.NewDecoder(res.Body).Decode(result)
+}
 
+func buildError(r *http.Response) error {
+	err := &Error{}
+	xml.NewDecoder(r.Body).Decode(err)
+	err.StatusCode = r.StatusCode
+	if err.Message == "" {
+		err.Message = r.Status
+	}
 	return err
+}
+
+type Error struct {
+	StatusCode int
+	Type       string `xml:"Error>Type"`
+	Code       string `xml:"Error>Code"`
+	Message    string `xml:"Error>Message"`
+	RequestId  string `xml:"RequestId"`
+}
+
+func (err *Error) Error() string {
+	if err.Code == "" {
+		return err.Message
+	}
+	return fmt.Sprintf("%s (%s)", err.Message, err.Code)
 }
 
 // CreateHostedZone send a creation request to the AWS Route53 API
