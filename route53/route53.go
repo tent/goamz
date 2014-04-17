@@ -62,8 +62,16 @@ type CreateHostedZoneRequest struct {
 }
 
 type ChangeResourceRecordSetsReq struct {
-	XMLName xml.Name                  `xml:"https://route53.amazonaws.com/doc/2013-04-01/ ChangeResourceRecordSetsRequest"`
-	Changes []ResourceRecordSetChange `xml:"ChangeBatch>Changes>Change"`
+	XMLName xml.Name    `xml:"https://route53.amazonaws.com/doc/2013-04-01/ ChangeResourceRecordSetsRequest"`
+	Batch   ChangeBatch `xml:"ChangeBatch"`
+}
+
+type ChangeBatch struct {
+	Changes ChangeBatchChanges
+}
+
+type ChangeBatchChanges struct {
+	Change []ResourceRecordSetChange
 }
 
 type ResourceRecordSetChange struct {
@@ -86,6 +94,15 @@ type ResourceRecordSet struct {
 
 type ResourceRecord struct {
 	Value string
+}
+
+type ListResourceRecordSetsResponse struct {
+	ResourceRecordSets   []ResourceRecordSet `xml:"ResourceRecordSets>ResourceRecordSet"`
+	IsTruncated          bool
+	MaxItems             int
+	NextRecordName       string
+	NextRecordType       string
+	NextRecordIdentifier string
 }
 
 type AliasTarget struct {
@@ -179,7 +196,7 @@ func (r *Route53) query(method, path string, in, out interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer req.Body.Close()
+	defer res.Body.Close()
 
 	if res.StatusCode != 201 && res.StatusCode != 200 {
 		return buildError(res)
@@ -229,7 +246,8 @@ func (r *Route53) CreateHostedZone(name, callerRef, comment string) (*CreateHost
 
 func (r *Route53) ChangeResourceRecordSets(zoneId string, changes []ResourceRecordSetChange) (*ChangeInfo, error) {
 	res := &changeResourceRecordSetsResponse{}
-	return &res.ChangeInfo, r.queryZone("POST", fmt.Sprintf("/%s/rrset", cleanID(zoneId)), &ChangeResourceRecordSetsReq{Changes: changes}, res)
+	req := &ChangeResourceRecordSetsReq{Batch: ChangeBatch{ChangeBatchChanges{changes}}}
+	return &res.ChangeInfo, r.queryZone("POST", fmt.Sprintf("/%s/rrset", cleanID(zoneId)), req, res)
 }
 
 func (r *Route53) ListHostedZones(marker string, maxItems int) (*ListHostedZonesResponse, error) {
@@ -241,6 +259,11 @@ func (r *Route53) ListHostedZones(marker string, maxItems int) (*ListHostedZones
 	}
 	res := &ListHostedZonesResponse{}
 	return res, r.queryZone("GET", path, nil, res)
+}
+
+func (r *Route53) ListResourceRecordSets(zoneId string) (*ListResourceRecordSetsResponse, error) {
+	res := &ListResourceRecordSetsResponse{}
+	return res, r.queryZone("GET", fmt.Sprintf("/%s/rrset", cleanID(zoneId)), nil, res)
 }
 
 func (r *Route53) GetHostedZone(id string) (*GetHostedZoneResponse, error) {
