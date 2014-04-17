@@ -41,12 +41,8 @@ type HostedZone struct {
 	Id                     string
 	Name                   string
 	CallerReference        string
-	Config                 Config
+	Comment                string `xml:"Config>Comment"`
 	ResourceRecordSetCount int
-}
-
-type Config struct {
-	Comment string
 }
 
 type ListHostedZonesResponse struct {
@@ -58,9 +54,9 @@ type ListHostedZonesResponse struct {
 }
 
 type CreateHostedZoneRequest struct {
-	Name             string
-	CallerReference  string
-	HostedZoneConfig HostedZoneConfig
+	Name            string
+	CallerReference string
+	Comment         string `xml:"HostedZoneConfig>Comment,omitempty"`
 }
 
 type ChangeResourceRecordSetsRequest struct {
@@ -89,10 +85,6 @@ type AliasTarget struct {
 	HostedZoneId         string
 	DNSName              string
 	EvaluateTargetHealth bool
-}
-
-type HostedZoneConfig struct {
-	Comment string
 }
 
 type CreateHostedZoneResponse struct {
