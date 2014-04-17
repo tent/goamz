@@ -1146,3 +1146,22 @@ func (ec2 *EC2) DeleteKeyPair(name string) (*SimpleResp, error) {
 	err := ec2.query(params, resp)
 	return resp, err
 }
+
+type AccountAttributesResp struct {
+	RequestID  string             `xml:"requestId"`
+	Attributes []AccountAttribute `xml:"accountAttributeSet>item"`
+}
+
+type AccountAttribute struct {
+	Name   string   `xml:"attributeName"`
+	Values []string `xml:"attributeValueSet>item>attributeValue"`
+}
+
+func (ec2 *EC2) AccountAttributes() (*AccountAttributesResp, error) {
+	params := makeParamsVPC("DescribeAccountAttributes")
+	params["AttributeName.1"] = "supported-platforms"
+	params["AttributeName.2"] = "default-vpc"
+	resp := &AccountAttributesResp{}
+	err := ec2.query(params, resp)
+	return resp, err
+}
