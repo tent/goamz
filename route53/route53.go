@@ -230,8 +230,12 @@ func (err *Error) Error() string {
 	return fmt.Sprintf("%s (%s)", err.Message, err.Code)
 }
 
-func cleanID(id string) string {
+func cleanZoneID(id string) string {
 	return strings.TrimPrefix(id, "/hostedzone/")
+}
+
+func cleanChangeID(id string) string {
+	return strings.TrimPrefix(id, "/change/")
 }
 
 func (r *Route53) CreateHostedZone(name, callerRef, comment string) (*CreateHostedZoneResponse, error) {
@@ -247,7 +251,7 @@ func (r *Route53) CreateHostedZone(name, callerRef, comment string) (*CreateHost
 func (r *Route53) ChangeResourceRecordSets(zoneId string, changes []ResourceRecordSetChange) (*ChangeInfo, error) {
 	res := &changeResourceRecordSetsResponse{}
 	req := &ChangeResourceRecordSetsReq{Batch: ChangeBatch{ChangeBatchChanges{changes}}}
-	return &res.ChangeInfo, r.queryZone("POST", fmt.Sprintf("/%s/rrset", cleanID(zoneId)), req, res)
+	return &res.ChangeInfo, r.queryZone("POST", fmt.Sprintf("/%s/rrset", cleanZoneID(zoneId)), req, res)
 }
 
 func (r *Route53) ListHostedZones(marker string, maxItems int) (*ListHostedZonesResponse, error) {
@@ -263,17 +267,17 @@ func (r *Route53) ListHostedZones(marker string, maxItems int) (*ListHostedZones
 
 func (r *Route53) ListResourceRecordSets(zoneId string) (*ListResourceRecordSetsResponse, error) {
 	res := &ListResourceRecordSetsResponse{}
-	return res, r.queryZone("GET", fmt.Sprintf("/%s/rrset", cleanID(zoneId)), nil, res)
+	return res, r.queryZone("GET", fmt.Sprintf("/%s/rrset", cleanZoneID(zoneId)), nil, res)
 }
 
 func (r *Route53) GetHostedZone(id string) (*GetHostedZoneResponse, error) {
 	res := &GetHostedZoneResponse{}
-	return res, r.queryZone("GET", "/"+cleanID(id), nil, res)
+	return res, r.queryZone("GET", "/"+cleanZoneID(id), nil, res)
 }
 
 func (r *Route53) DeleteHostedZone(id string) (*DeleteHostedZoneResponse, error) {
 	res := &DeleteHostedZoneResponse{}
-	return res, r.queryZone("DELETE", "/"+cleanID(id), nil, res)
+	return res, r.queryZone("DELETE", "/"+cleanZoneID(id), nil, res)
 }
 
 func (r *Route53) CreateHealthCheck(check *HealthCheck) (*HealthCheck, error) {
@@ -296,6 +300,6 @@ func (r *Route53) GetHealthCheck(id string) (*HealthCheck, error) {
 
 func (r *Route53) GetChange(id string) (*ChangeInfo, error) {
 	res := &getChangeResponse{}
-	err := r.query("GET", changePath+"/"+id, nil, res)
+	err := r.query("GET", changePath+"/"+cleanChangeID(id), nil, res)
 	return &res.ChangeInfo, err
 }
